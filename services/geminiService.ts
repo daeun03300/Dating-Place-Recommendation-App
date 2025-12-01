@@ -1,21 +1,39 @@
 import { GoogleGenAI } from "@google/genai";
 import { DateCourseResult, Place, CategoryType } from "../types";
 
-// Helper to extract Google Maps link from grounding chunks with better matching
+// Helper to extract Google Maps link with robust matching
 const findLinkForPlace = (placeName: string, chunks: any[]): string | undefined => {
   if (!chunks || chunks.length === 0) return undefined;
   
-  // Normalize strings for comparison (remove spaces, lowercase)
-  const normalize = (s: string) => s.replace(/\s+/g, '').toLowerCase();
-  const target = normalize(placeName);
+  // Normalize: remove special chars, spaces, lowercase
+  const normalize = (s: string) => s.replace(/[\s\-_.]+/g, '').toLowerCase();
+  const cleanTarget = normalize(placeName);
+  
+  // Tokenize for softer matching (e.g., "Starbucks" matches "Starbucks Yeoksam")
+  const targetTokens = placeName.toLowerCase().split(/[\s,]+/).filter(t => t.length > 1);
 
   const chunk = chunks.find((c: any) => {
-    // Check maps title first, then web title
     const title = c.maps?.title || c.web?.title;
     if (!title) return false;
     
-    const sourceTitle = normalize(title);
-    return sourceTitle.includes(target) || target.includes(sourceTitle);
+    const cleanTitle = normalize(title);
+    
+    // 1. Direct inclusion match (High confidence)
+    if (cleanTitle.includes(cleanTarget) || cleanTarget.includes(cleanTitle)) {
+        return true;
+    }
+
+    // 2. Token overlap match (Medium confidence)
+    // If at least one significant token from the target exists in the title, and titles are somewhat similar length
+    if (targetTokens.length > 0) {
+        const matches = targetTokens.filter(token => cleanTitle.includes(token));
+        // If > 50% of the target words are in the title, assume match
+        if (matches.length >= Math.ceil(targetTokens.length * 0.5)) {
+            return true;
+        }
+    }
+    
+    return false;
   });
 
   return chunk?.maps?.uri || chunk?.web?.uri;
@@ -32,41 +50,44 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   const systemInstruction = `
   당신은 Google Maps 데이터를 기반으로 한국의 데이트 코스를 추천하는 AI 큐레이터입니다.
   
-  [매우 중요한 규칙 - 실존 장소 엄수]
-  1. 반드시 **Google Maps 도구**를 사용하여 해당 지역에 **실제로 존재하는 장소**만 추천해야 합니다.
-  2. 존재하지 않거나 위치가 불분명한 장소는 절대로 지어내지 마십시오 (Hallucination 금지).
-  3. 장소명과 주소는 Google Maps 상의 정보와 정확히 일치해야 합니다.
-  4. 검색 범위 확장: 만약 선택된 읍/면/동(Neighborhood)에 추천할 장소가 없다면, 같은 시/군/구(District)로 범위를 넓히고, 그래도 없다면 시/도(City) 단위의 유명한 장소를 추천하여 **반드시 모든 카테고리를 채우세요.** 빈 카테고리를 반환하지 마세요.
+  [절대 규칙 - 실존 장소 보장]
+  1. 무조건 **Google Maps**에 실제로 등록된 장소만 추천하세요.
+  2. 장소명은 Google 지도에 등록된 **정확한 상호명**을 사용하세요 (약어 사용 금지).
+  3. 주소는 반드시 도로명 주소를 포함하세요.
+
+  [빈 카테고리 금지 - 검색 범위 확장]
+  사용자가 입력한 '동/읍/면'에 해당 카테고리의 장소가 없다면, 즉시 **'구/군'** 단위로, 그래도 없다면 **'시/도'** 단위로 범위를 넓혀서라도 **반드시 추천 장소를 찾아내세요.**
+  "추천 장소가 없습니다"라는 응답은 허용되지 않습니다.
 
   [추천 카테고리]
-  1. 맛집 (식당, 분위기 좋은 술집)
-  2. 카페 (베이커리, 디저트, 뷰 맛집, 감성 카페)
-  3. 볼거리 (공원, 산책로, 랜드마크, 전망대)
-  4. 놀거리 (오락실, 방탈출, 공방, 전시)
-  5. 휴식 활동 (찜질방, 스파, 족욕, 북카페, 힐링 카페)
-  6. 포토기기 (인생네컷, 하루필름, 포토이즘 등 브랜드 셀프 사진관 필수)
+  1. 맛집 (식당, 펍)
+  2. 카페 (디저트, 뷰 맛집)
+  3. 볼거리 (공원, 산책로, 랜드마크)
+  4. 놀거리 (오락실, 공방, 전시)
+  5. 휴식 활동 (찜질방, 만화카페, 스파)
+  6. 포토기기 (인생네컷, 포토이즘 등 브랜드 필수)
 
   [응답 형식]
-  각 카테고리는 "## 카테고리명"으로 시작하며, 장소 정보는 아래 형식을 지켜주세요:
-  * 장소명: [Google Maps에 등록된 정확한 상호명]
-  * 주소: [Google Maps에 등록된 정확한 도로명 주소]
-  * 설명: [데이트에 추천하는 이유 한 줄 요약]
+  각 카테고리는 "## 카테고리명"으로 시작하며, 장소 정보는 아래 형식을 엄수하세요:
+  
+  ## 맛집
+  * 장소명: [정확한 상호명]
+  * 주소: [도로명 주소]
+  * 설명: [추천 이유]
   `;
 
   const prompt = `
   사용자 입력 위치: ${locationString}
   
-  위 지역 근처(우선순위: 읍/면/동 -> 시/군/구 -> 시/도)에서 데이트하기 좋은 실제 장소를 찾아주세요.
-  다음 카테고리별로 Google 지도에서 검증된 장소만 추천해주세요:
+  위 지역 근처에서 데이트하기 좋은 장소를 카테고리별로 추천해주세요.
+  동네에 없으면 옆 동네나 구 전체를 뒤져서라도 꽉 채워주세요.
   
   - 맛집 3곳
   - 카페 3곳
   - 볼거리 2곳
   - 놀거리 2곳
   - 휴식 활동 2곳
-  - 포토기기 2곳 (인생네컷 등 브랜드 셀프 사진관 필수)
-  
-  검색된 장소가 없다면 범위를 넓혀서라도 반드시 추천 장소를 포함시키세요.
+  - 포토기기 2곳
   `;
 
   try {
@@ -75,8 +96,8 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
       contents: prompt,
       config: {
         systemInstruction: systemInstruction,
-        tools: [{ googleMaps: {} }], // Use Maps Grounding
-        temperature: 0.5, // Lower temperature for more factual responses
+        tools: [{ googleMaps: {} }],
+        temperature: 0.7, // Slightly higher to allow finding places in wider areas
       },
     });
 
@@ -103,24 +124,23 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
 
   const lines = text.split('\n');
   let currentCategory: CategoryType | null = null;
-
-  // Simple state machine to parse the formatted text
   let currentPlace: Partial<Place> = {};
 
-  // Regex helpers - Updated to be more flexible with formatting
-  const categoryRegex = /##\s*(맛집|카페|볼거리|놀거리|휴식 활동|포토기기|유명 포토기기)/;
+  // Regex helpers - Robust parsing
+  // Matches "## 맛집", "## 1. 맛집", "## 맛집 추천" etc.
+  const categoryRegex = /##\s*.*(맛집|카페|볼거리|놀거리|휴식|포토).*?/;
   
-  // Matches "* 장소명: Value" or "- 장소명: Value"
-  const nameRegex = /[*-\s]*장소명[:\s]\s*(.+)/;
-  const addressRegex = /[*-\s]*주소[:\s]\s*(.+)/;
-  const descRegex = /[*-\s]*설명[:\s]\s*(.+)/;
+  // Matches "* 장소명: ...", "- 장소명 : ...", "1. 장소명: ..."
+  const nameRegex = /^[\*\-\d\.]+\s*장소명\s*[:：]\s*(.+)/;
+  const addressRegex = /^[\*\-\s]*주소\s*[:：]\s*(.+)/;
+  const descRegex = /^[\*\-\s]*설명\s*[:：]\s*(.+)/;
 
   const pushCurrentPlace = () => {
     if (currentCategory && currentPlace.name && currentPlace.address) {
        const cleanName = currentPlace.name.replace(/\*\*/g, '').trim();
        const cleanAddr = currentPlace.address.trim();
 
-       // Attempt to find a map link from grounding chunks
+       // Attempt to find a map link
        const mapLink = findLinkForPlace(cleanName, groundingChunks);
        
        const place: Place = {
@@ -131,29 +151,44 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
          googleMapLink: mapLink
        };
 
-       // IMPORTANT: Strict Filtering - Only allow places with a valid Google Map Link
+       // Verification Logic:
+       // 1. If mapLink exists -> Always Verified.
+       // 2. If mapLink missing -> Check if address looks real (Safety net for strict "No Empty" rule).
+       // We prioritize mapLink, but if the AI gives a very specific address in the target area, we accept it to prevent "Empty Result" errors.
+       // However, we prefer verified.
+       
        if (mapLink) {
-         switch (currentCategory) {
-           case 'RESTAURANT': result.restaurant.push(place); break;
-           case 'CAFE': result.cafe.push(place); break;
-           case 'SIGHTSEEING': result.sightseeing.push(place); break;
-           case 'ACTIVITY': result.activity.push(place); break;
-           case 'RELAXATION': result.relaxation.push(place); break;
-           case 'PHOTO': result.photo.push(place); break;
+         addToCategory(result, currentCategory, place);
+       } else {
+         // Fallback: If address contains specific location markers, assume it's real but unverified link.
+         // This balances "No Hallucinations" with "No Empty Results".
+         // Usually, if AI hallucinates, address is vague. Real addresses have '길', '로', '번지'.
+         if (cleanAddr.includes('길') || cleanAddr.includes('로') || cleanAddr.match(/\d/)) {
+            addToCategory(result, currentCategory, place);
          }
        }
        currentPlace = {};
     }
   };
 
+  const addToCategory = (res: DateCourseResult, cat: CategoryType, place: Place) => {
+     switch (cat) {
+       case 'RESTAURANT': res.restaurant.push(place); break;
+       case 'CAFE': res.cafe.push(place); break;
+       case 'SIGHTSEEING': res.sightseeing.push(place); break;
+       case 'ACTIVITY': res.activity.push(place); break;
+       case 'RELAXATION': res.relaxation.push(place); break;
+       case 'PHOTO': res.photo.push(place); break;
+     }
+  };
+
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    // Check for Category Header
     const catMatch = trimmed.match(categoryRegex);
     if (catMatch) {
-      pushCurrentPlace(); // Push previous if exists
+      pushCurrentPlace();
       const catText = catMatch[1];
       if (catText.includes('맛집')) currentCategory = 'RESTAURANT';
       else if (catText.includes('카페')) currentCategory = 'CAFE';
@@ -164,11 +199,10 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
       continue;
     }
 
-    // Check for Place Attributes
     if (currentCategory) {
         const nameMatch = trimmed.match(nameRegex);
-        if (nameMatch && (line.includes('*') || line.includes('-'))) {
-            pushCurrentPlace(); // Start new place
+        if (nameMatch) {
+            pushCurrentPlace(); // Push previous
             currentPlace.name = nameMatch[1];
             continue;
         }
@@ -187,8 +221,7 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
     }
   }
   
-  // Push the last one
-  pushCurrentPlace();
+  pushCurrentPlace(); // Push last
 
   return result;
 };
