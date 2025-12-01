@@ -99,7 +99,7 @@ const App: React.FC = () => {
 
       {/* Footer */}
       <footer className="w-full py-8 text-center text-rose-300 text-sm relative z-10 font-medium">
-        Made with <Heart className="w-3 h-3 inline fill-current mx-1" /> by DateCourse KR
+        Made with <Heart className="w-3 h-3 inline fill-current mx-1" /> by Daeun, Sungjin
       </footer>
     </div>
   );

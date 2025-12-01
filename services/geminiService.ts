@@ -54,7 +54,8 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   1. 무조건 **Google Maps**에 실제로 등록된 장소만 추천하세요.
   2. 장소명은 Google 지도에 등록된 **정확한 상호명**을 사용하세요 (약어 사용 금지).
   3. 주소는 반드시 도로명 주소를 포함하세요.
-  4. Google Maps에 등록된 **별점(평점)** 정보를 반드시 포함하세요.
+  4. **별점(평점)**은 반드시 Google Maps 검색 결과에 있는 **실제 수치**를 기입하세요. (임의 작성 금지)
+  5. 별점 정보가 없다면 0.0으로 표기하세요.
 
   [빈 카테고리 금지 - 검색 범위 확장]
   사용자가 입력한 '동/읍/면'에 해당 카테고리의 장소가 없다면, 즉시 **'구/군'** 단위로, 그래도 없다면 **'시/도'** 단위로 범위를 넓혀서라도 **반드시 추천 장소를 찾아내세요.**
@@ -74,7 +75,7 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   ## 맛집
   * 장소명: [정확한 상호명]
   * 주소: [도로명 주소]
-  * 별점: [0.0 ~ 5.0 사이 숫자, 없으면 0.0]
+  * 별점: [Google Maps 실제 별점]
   * 설명: [추천 이유]
   `;
 
@@ -83,6 +84,7 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   
   위 지역 근처에서 데이트하기 좋은 장소를 카테고리별로 추천해주세요.
   동네에 없으면 옆 동네나 구 전체를 뒤져서라도 꽉 채워주세요.
+  각 장소의 별점은 Google Maps 데이터를 기반으로 정확하게 기재해주세요.
   
   - 맛집 3곳
   - 카페 3곳
