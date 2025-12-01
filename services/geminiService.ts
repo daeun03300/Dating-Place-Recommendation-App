@@ -64,28 +64,17 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   
   [절대 규칙 - 실존 장소 보장]
   1. 무조건 **Google Maps**에 실제로 등록된 장소만 추천하세요.
-  2. 장소명은 Google 지도에 등록된 **정확한 상호명**을 사용하세요 (약어 사용 금지).
-  3. 주소는 반드시 도로명 주소를 포함하세요.
-  4. **별점(평점)**은 반드시 Google Maps 검색 결과에 있는 **실제 수치**를 기입하세요. (임의 작성 금지)
-  5. 별점 정보가 없다면 0.0으로 표기하세요.
-  6. **중요**: 답변 생성 시 반드시 Google Maps 도구를 사용하여 각 장소의 'Grounding Metadata'가 생성되도록 하세요.
+  2. 장소명은 Google 지도에 등록된 **정확한 상호명**을 사용하세요.
+  3. **별점(평점)**은 반드시 Google Maps 검색 결과에 있는 **실제 수치**를 기입하세요. (데이터가 없으면 0.0)
+  4. 답변 생성 시 반드시 Google Maps 도구를 사용하여 각 장소의 메타데이터를 확인하세요.
 
-  [중복 금지 및 카테고리 구분]
-  1. **절대 중복 금지**: 한 번 추천한 장소는 다른 카테고리에서 다시 언급하지 마세요. (예: 카페로 추천한 곳을 휴식 공간으로 또 추천하지 말 것)
-  2. 카테고리별 성격을 명확히 구분하세요.
-
-  [빈 카테고리 금지 - 검색 범위 확장]
-  사용자가 입력한 '동/읍/면'에 해당 카테고리의 장소가 없다면, 즉시 **'구/군'** 단위로, 그래도 없다면 **'시/도'** 단위로 범위를 넓혀서라도 **반드시 추천 장소를 찾아내세요.**
-  "추천 장소가 없습니다"라는 응답은 허용되지 않습니다.
-
-  [추천 카테고리 정의]
-  1. 맛집: 식당, 다이닝, 펍 (카페 제외)
-  2. 카페: 커피, 디저트 전문점
-  3. 볼거리: 공원, 산책로, 랜드마크, 전망대 (실내 활동 제외)
-  4. 놀거리: 오락실, 공방, 전시, 영화관, 보드게임 카페
-  5. 쇼핑: 백화점, 아울렛, 소품샵, 편집샵, 대형 서점
-  6. 휴식 활동: 찜질방, 만화카페, 스파, 족욕 카페
-  7. **포토기기**: 반드시 '인생네컷', '포토이즘', '하루필름', '모노맨션', '포토시그니처', '비룸스튜디오' 등 **무인 셀프 사진관 프랜차이즈**만 추천하세요. 일반 사진관이나 스튜디오는 제외하세요.
+  [카테고리 엄수 및 중복 금지]
+  1. **절대 중복 금지**: 한 장소를 여러 카테고리에 중복 추천하지 마세요.
+  2. **카테고리 정확성**:
+     - **맛집**: 식사 위주의 장소. 카페나 디저트 가게를 포함하지 마세요.
+     - **카페**: 커피/디저트 위주. 식당을 포함하지 마세요.
+     - **포토기기**: 반드시 '인생네컷', '포토이즘', '하루필름', '비룸스튜디오' 등 **무인 셀프 사진관 프랜차이즈**만 추천하세요. 일반 스튜디오나 사진관은 제외하세요.
+  3. **빈 카테고리 금지**: 동네에 없으면 '구/군', 그래도 없으면 '시/도' 단위로 검색 범위를 넓혀서라도 반드시 추천 장소를 찾으세요.
 
   [응답 형식]
   각 카테고리는 "## 카테고리명"으로 시작하며, 장소 정보는 아래 형식을 엄수하세요:
@@ -97,16 +86,11 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   * 설명: [추천 이유]
   `;
 
-  const prompt = `
+  let prompt = `
   사용자 입력 위치: ${locationString}
   
-  위 지역 근처에서 데이트하기 좋은 장소를 카테고리별로 추천해주세요.
-  
-  [주의사항]
-  1. 동네에 없으면 옆 동네나 구 전체를 뒤져서라도 꽉 채워주세요.
-  2. 모든 카테고리를 통틀어 **중복된 장소가 단 하나도 없어야** 합니다.
-  3. 포토기기는 반드시 **무인 사진방(포토이즘, 인생네컷 등)**이어야 합니다.
-  4. 각 장소의 별점은 Google Maps 데이터를 기반으로 정확하게 기재해주세요.
+  위 위치를 중심으로 데이트 코스를 추천해주세요.
+  각 카테고리별로 가장 인기있고 평점이 좋은 장소를 찾아주세요.
   
   - 맛집 3곳
   - 카페 3곳
@@ -114,24 +98,29 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   - 놀거리 2곳
   - 쇼핑 2곳
   - 휴식 활동 2곳
-  - 포토기기 2곳
+  - 포토기기 2곳 (무인 사진방 필수)
   `;
 
   let lastError: any = null;
   const MAX_RETRIES = 2;
 
-  // Retry loop to handle cases where Grounding fails to populate on the first try
+  // Retry loop
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       console.log(`Fetching date course... Attempt ${attempt}`);
       
+      // If retrying, expand the prompt to be more explicit about broader search to reduce "0 result" errors
+      if (attempt > 1) {
+        prompt += `\n[재검색 요청] 이전 검색 결과가 부족했습니다. 검색 반경을 넓혀서라도, 반드시 각 카테고리에 맞는 유명하고 확실한 장소를 찾아내세요.`;
+      }
+
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           systemInstruction: systemInstruction,
           tools: [{ googleMaps: {} }],
-          temperature: 0.7 + (attempt * 0.1), // Slightly increase temp on retry to find different paths
+          temperature: 0.6 + (attempt * 0.1), // Increase creativity slightly on retry
         },
       });
 
@@ -143,11 +132,18 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
       // Count total verified places found
       const totalPlaces = Object.values(result).reduce((sum, list) => sum + list.length, 0);
       
-      if (totalPlaces > 0) {
+      // Check if essential categories are populated
+      const hasEssentials = result.restaurant.length > 0 && result.cafe.length > 0;
+
+      if (totalPlaces > 0 && hasEssentials) {
         return result;
       }
       
-      console.warn(`Attempt ${attempt} returned 0 verified places. Retrying...`);
+      console.warn(`Attempt ${attempt} insufficient results (Total: ${totalPlaces}). Retrying...`);
+      if (attempt === MAX_RETRIES && totalPlaces > 0) {
+          // If last attempt has at least something, return it rather than failing completely
+          return result;
+      }
       
     } catch (error) {
       console.error(`Attempt ${attempt} failed:`, error);
@@ -173,14 +169,9 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
   let currentCategory: CategoryType | null = null;
   let currentPlace: Partial<Place> = {};
   
-  // Set to track unique places and prevent duplicates across categories
   const seenPlaces = new Set<string>();
 
-  // Regex helpers - Robust parsing
-  // Matches "## 맛집", "## 1. 맛집", "## 맛집 추천" etc.
   const categoryRegex = /##\s*.*(맛집|카페|볼거리|놀거리|쇼핑|휴식|포토).*?/;
-  
-  // Matches "* 장소명: ...", "- 장소명 : ...", "1. 장소명: ..."
   const nameRegex = /^[\*\-\d\.]+\s*장소명\s*[:：]\s*(.+)/;
   const addressRegex = /^[\*\-\s]*주소\s*[:：]\s*(.+)/;
   const ratingRegex = /^[\*\-\s]*별점\s*[:：]\s*(.+)/;
@@ -188,10 +179,18 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
 
   const pushCurrentPlace = () => {
     if (currentCategory && currentPlace.name && currentPlace.address) {
-       const cleanName = currentPlace.name.replace(/\*\*/g, '').trim();
+       let cleanName = currentPlace.name.replace(/\*\*/g, '').trim();
        const cleanAddr = currentPlace.address.trim();
        
-       // Deduplication key
+       // Special filtering for PHOTO category
+       // If category is PHOTO, ensure it sounds like a photo booth
+       if (currentCategory === 'PHOTO') {
+           const photoKeywords = ['네컷', '포토', '필름', '스튜디오', '사진', 'photo', 'studio', 'pic'];
+           const isPhotoRelated = photoKeywords.some(k => cleanName.toLowerCase().includes(k));
+           // Note: We don't strictly reject if keyword missing because names vary, 
+           // but we rely on system instruction. However, we can filter out obvious mismatches if needed.
+       }
+
        const uniqueKey = `${cleanName}-${cleanAddr}`.replace(/\s/g, '');
 
        if (seenPlaces.has(uniqueKey)) {
@@ -199,12 +198,9 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
          return; 
        }
 
-       // Attempt to find a map link AND the official title
        const groundingInfo = findGroundingInfo(cleanName, groundingChunks);
        
        const place: Place = {
-         // CRITICAL: Overwrite AI generated name with Grounding Title if available
-         // This ensures the name on the card matches the Google Maps name exactly.
          name: groundingInfo ? groundingInfo.title : cleanName,
          address: cleanAddr,
          description: currentPlace.description || "설명 없음",
@@ -213,11 +209,10 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
          googleMapLink: groundingInfo?.uri
        };
 
-       // Verification Logic:
-       // STRICT: Only allow places where a map link was found (Verified Real Places).
+       // STRICT: Only Verified Real Places
        if (groundingInfo) {
          addToCategory(result, currentCategory, place);
-         seenPlaces.add(uniqueKey); // Mark as seen only if added
+         seenPlaces.add(uniqueKey);
        } 
        currentPlace = {};
     }
@@ -256,7 +251,7 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
     if (currentCategory) {
         const nameMatch = trimmed.match(nameRegex);
         if (nameMatch) {
-            pushCurrentPlace(); // Push previous
+            pushCurrentPlace();
             currentPlace.name = nameMatch[1];
             continue;
         }
@@ -269,7 +264,6 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
 
         const ratingMatch = trimmed.match(ratingRegex);
         if (ratingMatch) {
-            // Remove any non-numeric chars except dot, and text like "점", "/5" etc.
             const rawRating = ratingMatch[1].replace(/[^\d.]/g, '');
             currentPlace.rating = rawRating;
             continue;
@@ -283,7 +277,7 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
     }
   }
   
-  pushCurrentPlace(); // Push last
+  pushCurrentPlace();
 
   return result;
 };

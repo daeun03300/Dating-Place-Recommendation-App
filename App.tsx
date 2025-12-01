@@ -66,59 +66,55 @@ const App: React.FC = () => {
   };
 
   const handleAddReview = (text: string) => {
-    let bestX = 0;
     let bestY = 0;
+    let isLeft = true;
     let validPositionFound = false;
     let attempts = 0;
     const maxAttempts = 50;
-    const minVerticalSpacing = 6; // Minimum vertical % distance to avoid overlap
+    const minVerticalSpacing = 8; // Increased spacing
 
     // Try to find a non-overlapping spot
     while (!validPositionFound && attempts < maxAttempts) {
         attempts++;
         
-        // Alternate sides based on attempt count to balance distribution
-        const isLeft = Math.random() > 0.5;
+        // Alternate sides
+        isLeft = Math.random() > 0.5;
 
-        // Left zone: 5-15%, Right zone: 85-95%
-        const candidateX = isLeft 
-            ? Math.random() * 10 + 5 
-            : Math.random() * 10 + 85;
-
-        // Vertical: 10-90% to avoid extreme edges
-        const candidateY = Math.random() * 80 + 10;
+        // Vertical: 15-85% to avoid header/footer overlap
+        const candidateY = Math.random() * 70 + 15;
 
         // Check collision with existing reviews
         const collision = reviews.some(r => {
-            // Check if on the same side (roughly)
+            // Check if on the same side
+            // We use x < 50 to denote left-aligned reviews in the stored data logic
             const rIsLeft = r.x < 50;
-            const cIsLeft = candidateX < 50;
-            if (rIsLeft !== cIsLeft) return false;
+            
+            if (rIsLeft !== isLeft) return false;
 
             // Check vertical distance
             return Math.abs(r.y - candidateY) < minVerticalSpacing;
         });
 
         if (!collision) {
-            bestX = candidateX;
             bestY = candidateY;
             validPositionFound = true;
         }
     }
 
-    // Fallback if no specific spot found (unlikely unless very crowded)
     if (!validPositionFound) {
-        const isLeft = Math.random() > 0.5;
-        bestX = isLeft ? Math.random() * 10 + 5 : Math.random() * 10 + 85;
-        bestY = Math.random() * 80 + 10;
+        isLeft = Math.random() > 0.5;
+        bestY = Math.random() * 70 + 15;
     }
 
     const newReview: Review = {
       id: Date.now().toString(),
       text,
-      x: bestX,
+      // We use 'x' to store the side-offset. 
+      // If left: x is small (e.g., 2). Render as left: 2%.
+      // If right: x is large (e.g., 98). Render as right: 2% (computed).
+      x: isLeft ? (Math.random() * 3 + 2) : (Math.random() * 3 + 95), 
       y: bestY,
-      rotation: 0, // No rotation for straight alignment
+      rotation: 0,
     };
     setReviews(prev => [...prev, newReview]);
   };
@@ -141,19 +137,37 @@ const App: React.FC = () => {
       </div>
 
       {/* Anonymous Reviews Background */}
-      {reviews.map((review) => (
-        <div
-          key={review.id}
-          className="absolute font-jua text-rose-300/60 pointer-events-none select-none text-xl md:text-2xl z-0 whitespace-nowrap animate-fade-in"
-          style={{
+      {reviews.map((review) => {
+        const isLeft = review.x < 50;
+        // Logic: If Left, anchor left. If Right, anchor right.
+        // This prevents the text from flowing off-screen.
+        const style: React.CSSProperties = {
             top: `${review.y}%`,
-            left: `${review.x}%`,
-            transform: `translate(-50%, -50%)`, // Removed rotation for straight line
-          }}
-        >
-          "{review.text}"
-        </div>
-      ))}
+            transform: 'translateY(-50%)',
+            position: 'absolute',
+            maxWidth: '35%', // Limit width to prevent overlap with center content
+            whiteSpace: 'normal', // Allow wrapping
+            wordBreak: 'keep-all',
+            textAlign: isLeft ? 'left' : 'right',
+        };
+
+        if (isLeft) {
+            style.left = `${review.x}%`;
+        } else {
+            // review.x is ~95-98. Right value is 100 - x.
+            style.right = `${100 - review.x}%`;
+        }
+
+        return (
+            <div
+            key={review.id}
+            className="font-jua text-rose-300/60 pointer-events-none select-none text-lg md:text-xl z-0 animate-fade-in"
+            style={style}
+            >
+            "{review.text}"
+            </div>
+        );
+      })}
 
       {/* Guide Button */}
       <button 
