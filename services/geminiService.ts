@@ -1,8 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 import { DateCourseResult, Place, CategoryType } from "../types";
 
-// Helper to extract Google Maps link with robust matching
-const findLinkForPlace = (placeName: string, chunks: any[]): string | undefined => {
+// Helper to extract Google Maps link AND official title with robust matching
+const findGroundingInfo = (placeName: string, chunks: any[]): { title: string; uri: string } | undefined => {
   if (!chunks || chunks.length === 0) return undefined;
   
   // Normalize: remove special chars, spaces, lowercase
@@ -13,9 +13,13 @@ const findLinkForPlace = (placeName: string, chunks: any[]): string | undefined 
   const targetTokens = placeName.toLowerCase().split(/[\s,]+/).filter(t => t.length > 1);
 
   const chunk = chunks.find((c: any) => {
-    const title = c.maps?.title || c.web?.title;
+    // Prefer maps title, fallback to web title
+    let title = c.maps?.title || c.web?.title;
     if (!title) return false;
     
+    // Clean up " - Google Maps" suffix if present in web titles
+    title = title.replace(/\s*-\s*Google\s*Maps$/, '');
+
     const cleanTitle = normalize(title);
     
     // 1. Direct inclusion match (High confidence)
@@ -36,7 +40,15 @@ const findLinkForPlace = (placeName: string, chunks: any[]): string | undefined 
     return false;
   });
 
-  return chunk?.maps?.uri || chunk?.web?.uri;
+  if (!chunk) return undefined;
+
+  let finalTitle = chunk.maps?.title || chunk.web?.title || placeName;
+  finalTitle = finalTitle.replace(/\s*-\s*Google\s*Maps$/, '');
+
+  return {
+    title: finalTitle,
+    uri: chunk.maps?.uri || chunk.web?.uri
+  };
 };
 
 export const fetchDateCourse = async (locationString: string): Promise<DateCourseResult> => {
@@ -168,21 +180,23 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
        const cleanName = currentPlace.name.replace(/\*\*/g, '').trim();
        const cleanAddr = currentPlace.address.trim();
 
-       // Attempt to find a map link
-       const mapLink = findLinkForPlace(cleanName, groundingChunks);
+       // Attempt to find a map link AND the official title
+       const groundingInfo = findGroundingInfo(cleanName, groundingChunks);
        
        const place: Place = {
-         name: cleanName,
+         // CRITICAL: Overwrite AI generated name with Grounding Title if available
+         // This ensures the name on the card matches the Google Maps name exactly.
+         name: groundingInfo ? groundingInfo.title : cleanName,
          address: cleanAddr,
          description: currentPlace.description || "설명 없음",
          category: currentCategory,
          rating: currentPlace.rating || undefined,
-         googleMapLink: mapLink
+         googleMapLink: groundingInfo?.uri
        };
 
        // Verification Logic:
        // STRICT: Only allow places where a map link was found (Verified Real Places).
-       if (mapLink) {
+       if (groundingInfo) {
          addToCategory(result, currentCategory, place);
        } 
        currentPlace = {};
