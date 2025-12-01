@@ -56,6 +56,7 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   3. 주소는 반드시 도로명 주소를 포함하세요.
   4. **별점(평점)**은 반드시 Google Maps 검색 결과에 있는 **실제 수치**를 기입하세요. (임의 작성 금지)
   5. 별점 정보가 없다면 0.0으로 표기하세요.
+  6. **중요**: 답변 생성 시 반드시 Google Maps 도구를 사용하여 각 장소의 'Grounding Metadata'가 생성되도록 하세요.
 
   [빈 카테고리 금지 - 검색 범위 확장]
   사용자가 입력한 '동/읍/면'에 해당 카테고리의 장소가 없다면, 즉시 **'구/군'** 단위로, 그래도 없다면 **'시/도'** 단위로 범위를 넓혀서라도 **반드시 추천 장소를 찾아내세요.**
@@ -96,26 +97,45 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   - 포토기기 2곳
   `;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        systemInstruction: systemInstruction,
-        tools: [{ googleMaps: {} }],
-        temperature: 0.7, // Slightly higher to allow finding places in wider areas
-      },
-    });
+  let lastError: any = null;
+  const MAX_RETRIES = 2;
 
-    const text = response.text || "";
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+  // Retry loop to handle cases where Grounding fails to populate on the first try
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      console.log(`Fetching date course... Attempt ${attempt}`);
+      
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          systemInstruction: systemInstruction,
+          tools: [{ googleMaps: {} }],
+          temperature: 0.7 + (attempt * 0.1), // Slightly increase temp on retry to find different paths
+        },
+      });
 
-    return parseResponseText(text, groundingChunks);
+      const text = response.text || "";
+      const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
 
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    throw new Error("데이트 코스를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      const result = parseResponseText(text, groundingChunks);
+      
+      // Count total verified places found
+      const totalPlaces = Object.values(result).reduce((sum, list) => sum + list.length, 0);
+      
+      if (totalPlaces > 0) {
+        return result;
+      }
+      
+      console.warn(`Attempt ${attempt} returned 0 verified places. Retrying...`);
+      
+    } catch (error) {
+      console.error(`Attempt ${attempt} failed:`, error);
+      lastError = error;
+    }
   }
+
+  throw new Error(lastError?.message || "장소를 찾을 수 없습니다. 잠시 후 다시 시도해주세요.");
 };
 
 const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResult => {
@@ -162,8 +182,6 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
 
        // Verification Logic:
        // STRICT: Only allow places where a map link was found (Verified Real Places).
-       // We rely on the AI to search wider areas (Gu/City) if local spots are missing, 
-       // rather than accepting unverified hallucinations.
        if (mapLink) {
          addToCategory(result, currentCategory, place);
        } 
