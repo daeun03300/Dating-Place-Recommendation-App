@@ -25,7 +25,7 @@ const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
         </button>
 
         <h2 className="text-2xl font-jua text-gray-800 mb-6 text-center">
-          <span className="text-rose-500">DatePlace</span> 사용법 💡
+          <span className="text-rose-500">오늘의 데이트</span> 사용법 💡
         </h2>
 
         <div className="space-y-6">
