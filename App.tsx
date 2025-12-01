@@ -47,12 +47,21 @@ const App: React.FC = () => {
   };
 
   const handleAddReview = (text: string) => {
+    // Determine side (Left or Right) to avoid center content
+    const isLeft = Math.random() > 0.5;
+    
+    // Left zone: 2% - 15%
+    // Right zone: 85% - 98%
+    const x = isLeft 
+      ? Math.random() * 13 + 2 
+      : Math.random() * 13 + 85;
+
     const newReview: Review = {
       id: Date.now().toString(),
       text,
-      x: Math.random() * 80 + 10, // 10% to 90%
-      y: Math.random() * 80 + 10,
-      rotation: Math.random() * 30 - 15, // -15 to 15 deg
+      x: x,
+      y: Math.random() * 90 + 5, // 5% to 95% vertical
+      rotation: Math.random() * 40 - 20, // -20 to 20 deg
     };
     setReviews(prev => [...prev, newReview]);
   };

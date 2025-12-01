@@ -25,7 +25,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ onSubmit }) => {
                     type="text"
                     value={text}
                     onChange={(e) => setText(e.target.value)}
-                    placeholder="익명으로 짧은 후기를 남겨보세요! (예: 여기 분위기 짱!)"
+                    placeholder="익명으로 짧은 후기를 남겨보세요! (예: 예쁜 카페를 추천해주는 좋은 앱!)"
                     className="flex-grow bg-transparent border-none focus:ring-0 text-gray-700 placeholder-gray-400 font-jua text-lg px-4 py-2 outline-none"
                     maxLength={30}
                 />
