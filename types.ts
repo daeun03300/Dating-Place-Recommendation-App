@@ -31,3 +31,11 @@ export interface SearchState {
   result: DateCourseResult | null;
   rawText?: string;
 }
+
+export interface Review {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  rotation: number;
+}

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { LocationState, SearchState } from './types';
+import { LocationState, SearchState, Review } from './types';
 import { fetchDateCourse } from './services/geminiService';
 import InputForm from './components/InputForm';
 import ResultSection from './components/ResultSection';
-import { Heart, Sparkles } from 'lucide-react';
+import ReviewForm from './components/ReviewForm';
+import GuideModal from './components/GuideModal';
+import { Heart, Sparkles, HelpCircle } from 'lucide-react';
 
 const App: React.FC = () => {
   const [location, setLocation] = useState<LocationState>({
@@ -17,6 +19,9 @@ const App: React.FC = () => {
     error: null,
     result: null
   });
+
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
 
   const handleSearch = async () => {
     if (!location.city || !location.district || !location.neighborhood) return;
@@ -41,6 +46,17 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAddReview = (text: string) => {
+    const newReview: Review = {
+      id: Date.now().toString(),
+      text,
+      x: Math.random() * 80 + 10, // 10% to 90%
+      y: Math.random() * 80 + 10,
+      rotation: Math.random() * 30 - 15, // -15 to 15 deg
+    };
+    setReviews(prev => [...prev, newReview]);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-red-50 relative overflow-x-hidden">
       {/* Decorative Background Elements */}
@@ -57,6 +73,32 @@ const App: React.FC = () => {
        <div className="absolute bottom-20 left-1/4 text-pink-200/60 animate-pulse delay-500">
         <Heart className="w-16 h-16 fill-current" />
       </div>
+
+      {/* Anonymous Reviews Background */}
+      {reviews.map((review) => (
+        <div
+          key={review.id}
+          className="absolute font-jua text-rose-300/60 pointer-events-none select-none text-xl md:text-2xl z-0 whitespace-nowrap animate-fade-in"
+          style={{
+            top: `${review.y}%`,
+            left: `${review.x}%`,
+            transform: `translate(-50%, -50%) rotate(${review.rotation}deg)`,
+          }}
+        >
+          "{review.text}"
+        </div>
+      ))}
+
+      {/* Guide Button */}
+      <button 
+        onClick={() => setIsGuideOpen(true)}
+        className="absolute top-4 right-4 md:top-8 md:right-8 z-30 flex items-center gap-1.5 bg-white/50 backdrop-blur-sm hover:bg-white px-4 py-2 rounded-full shadow-sm text-gray-500 hover:text-rose-500 transition-all font-jua text-sm border border-pink-100 hover:shadow-md"
+      >
+        <HelpCircle className="w-4 h-4" />
+        사용 안내
+      </button>
+
+      <GuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
 
       <main className="relative z-10 container mx-auto px-4 py-12 md:py-20 flex flex-col items-center">
         
@@ -92,7 +134,12 @@ const App: React.FC = () => {
 
         {/* Results Section */}
         {searchState.result && (
-          <ResultSection result={searchState.result} />
+          <>
+            <ResultSection result={searchState.result} />
+            <div className="mt-8 w-full max-w-2xl animate-fade-in-up delay-300 relative z-20">
+               <ReviewForm onSubmit={handleAddReview} />
+            </div>
+          </>
         )}
 
       </main>
