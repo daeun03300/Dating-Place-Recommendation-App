@@ -142,12 +142,13 @@ const InputForm: React.FC<InputFormProps> = ({ location, setLocation, onSubmit, 
             {isLoading ? (
             <>
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>두근두근 코스 찾는 중...</span>
+                <span>두근두근 장소 찾는 중...</span>
             </>
             ) : (
             <>
                 <Heart className={`w-5 h-5 ${isFormValid ? 'fill-white animate-pulse' : ''}`} />
-                <span>데이트 코스 추천받기</span>
+                <span>데이트 장소 추천받기</span>
+                <Heart className={`w-5 h-5 ${isFormValid ? 'fill-white animate-pulse' : ''}`} />
             </>
             )}
         </div>
