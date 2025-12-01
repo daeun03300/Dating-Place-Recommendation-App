@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LocationState, SearchState, Review } from './types';
 import { fetchDateCourse } from './services/geminiService';
 import InputForm from './components/InputForm';
@@ -20,8 +20,27 @@ const App: React.FC = () => {
     result: null
   });
 
-  const [reviews, setReviews] = useState<Review[]>([]);
+  // Initialize reviews from localStorage
+  const [reviews, setReviews] = useState<Review[]>(() => {
+    try {
+      const saved = localStorage.getItem('dateplace_reviews');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Failed to load reviews:", e);
+      return [];
+    }
+  });
+
   const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
+
+  // Save reviews to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('dateplace_reviews', JSON.stringify(reviews));
+    } catch (e) {
+      console.error("Failed to save reviews:", e);
+    }
+  }, [reviews]);
 
   const handleSearch = async () => {
     if (!location.city || !location.district || !location.neighborhood) return;
@@ -50,18 +69,20 @@ const App: React.FC = () => {
     // Determine side (Left or Right) to avoid center content
     const isLeft = Math.random() > 0.5;
     
-    // Left zone: 2% - 15%
-    // Right zone: 85% - 98%
+    // Adjusted zones to prevent text from being cut off at the screen edges
+    // Element is centered via translate(-50%, -50%), so we avoid extreme 0% or 100%
+    // Left zone: 8% - 18%
+    // Right zone: 82% - 92%
     const x = isLeft 
-      ? Math.random() * 13 + 2 
-      : Math.random() * 13 + 85;
+      ? Math.random() * 10 + 8 
+      : Math.random() * 10 + 82;
 
     const newReview: Review = {
       id: Date.now().toString(),
       text,
       x: x,
-      y: Math.random() * 90 + 5, // 5% to 95% vertical
-      rotation: Math.random() * 40 - 20, // -20 to 20 deg
+      y: Math.random() * 80 + 10, // 10% to 90% vertical to avoid top/bottom cutoff
+      rotation: Math.random() * 30 - 15, // -15 to 15 deg (gentler rotation)
     };
     setReviews(prev => [...prev, newReview]);
   };
