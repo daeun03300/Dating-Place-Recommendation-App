@@ -1,5 +1,5 @@
 {
-  "name": "DateCourse KR",
+  "name": "DatePlace KR",
   "description": "A Korean date course recommendation app using Gemini AI and Google Maps Grounding to find restaurants, sightseeing, activities, and photo spots.",
   "requestFramePermissions": []
 }

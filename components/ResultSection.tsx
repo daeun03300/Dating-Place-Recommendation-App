@@ -10,7 +10,16 @@ interface ResultSectionProps {
 const PlaceCard: React.FC<{ place: Place; index: number }> = ({ place, index }) => {
   const renderRating = (ratingStr?: string) => {
     const rating = parseFloat(ratingStr || '0');
-    if (!rating || isNaN(rating) || rating === 0) return null;
+    
+    if (!rating || isNaN(rating) || rating === 0) {
+      return (
+        <div className="flex items-center gap-1 mb-2">
+            <span className="text-[11px] text-gray-400 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 inline-block">
+                ⭐ 별점 정보가 아직 없어요 (Google Maps 기준)
+            </span>
+        </div>
+      );
+    }
 
     return (
       <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md w-fit mb-2">
