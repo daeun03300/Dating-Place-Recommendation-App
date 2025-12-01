@@ -161,16 +161,12 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
        };
 
        // Verification Logic:
-       // 1. If mapLink exists -> Always Verified.
-       // 2. If mapLink missing -> Check if address looks real (Safety net for strict "No Empty" rule).
+       // STRICT: Only allow places where a map link was found (Verified Real Places).
+       // We rely on the AI to search wider areas (Gu/City) if local spots are missing, 
+       // rather than accepting unverified hallucinations.
        if (mapLink) {
          addToCategory(result, currentCategory, place);
-       } else {
-         // Fallback: If address contains specific location markers, assume it's real but unverified link.
-         if (cleanAddr.includes('길') || cleanAddr.includes('로') || cleanAddr.match(/\d/)) {
-            addToCategory(result, currentCategory, place);
-         }
-       }
+       } 
        currentPlace = {};
     }
   };
