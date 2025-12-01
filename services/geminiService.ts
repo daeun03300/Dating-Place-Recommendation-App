@@ -70,18 +70,22 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   5. 별점 정보가 없다면 0.0으로 표기하세요.
   6. **중요**: 답변 생성 시 반드시 Google Maps 도구를 사용하여 각 장소의 'Grounding Metadata'가 생성되도록 하세요.
 
+  [중복 금지 및 카테고리 구분]
+  1. **절대 중복 금지**: 한 번 추천한 장소는 다른 카테고리에서 다시 언급하지 마세요. (예: 카페로 추천한 곳을 휴식 공간으로 또 추천하지 말 것)
+  2. 카테고리별 성격을 명확히 구분하세요.
+
   [빈 카테고리 금지 - 검색 범위 확장]
   사용자가 입력한 '동/읍/면'에 해당 카테고리의 장소가 없다면, 즉시 **'구/군'** 단위로, 그래도 없다면 **'시/도'** 단위로 범위를 넓혀서라도 **반드시 추천 장소를 찾아내세요.**
   "추천 장소가 없습니다"라는 응답은 허용되지 않습니다.
 
-  [추천 카테고리]
-  1. 맛집 (식당, 펍)
-  2. 카페 (디저트, 뷰 맛집)
-  3. 볼거리 (공원, 산책로, 랜드마크)
-  4. 놀거리 (오락실, 공방, 전시)
-  5. 쇼핑 (백화점, 아울렛, 소품샵, 편집샵)
-  6. 휴식 활동 (찜질방, 만화카페, 스파)
-  7. 포토기기 (인생네컷, 포토이즘 등 브랜드 필수)
+  [추천 카테고리 정의]
+  1. 맛집: 식당, 다이닝, 펍 (카페 제외)
+  2. 카페: 커피, 디저트 전문점
+  3. 볼거리: 공원, 산책로, 랜드마크, 전망대 (실내 활동 제외)
+  4. 놀거리: 오락실, 공방, 전시, 영화관, 보드게임 카페
+  5. 쇼핑: 백화점, 아울렛, 소품샵, 편집샵, 대형 서점
+  6. 휴식 활동: 찜질방, 만화카페, 스파, 족욕 카페
+  7. **포토기기**: 반드시 '인생네컷', '포토이즘', '하루필름', '모노맨션', '포토시그니처', '비룸스튜디오' 등 **무인 셀프 사진관 프랜차이즈**만 추천하세요. 일반 사진관이나 스튜디오는 제외하세요.
 
   [응답 형식]
   각 카테고리는 "## 카테고리명"으로 시작하며, 장소 정보는 아래 형식을 엄수하세요:
@@ -97,8 +101,12 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   사용자 입력 위치: ${locationString}
   
   위 지역 근처에서 데이트하기 좋은 장소를 카테고리별로 추천해주세요.
-  동네에 없으면 옆 동네나 구 전체를 뒤져서라도 꽉 채워주세요.
-  각 장소의 별점은 Google Maps 데이터를 기반으로 정확하게 기재해주세요.
+  
+  [주의사항]
+  1. 동네에 없으면 옆 동네나 구 전체를 뒤져서라도 꽉 채워주세요.
+  2. 모든 카테고리를 통틀어 **중복된 장소가 단 하나도 없어야** 합니다.
+  3. 포토기기는 반드시 **무인 사진방(포토이즘, 인생네컷 등)**이어야 합니다.
+  4. 각 장소의 별점은 Google Maps 데이터를 기반으로 정확하게 기재해주세요.
   
   - 맛집 3곳
   - 카페 3곳
@@ -164,6 +172,9 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
   const lines = text.split('\n');
   let currentCategory: CategoryType | null = null;
   let currentPlace: Partial<Place> = {};
+  
+  // Set to track unique places and prevent duplicates across categories
+  const seenPlaces = new Set<string>();
 
   // Regex helpers - Robust parsing
   // Matches "## 맛집", "## 1. 맛집", "## 맛집 추천" etc.
@@ -179,6 +190,14 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
     if (currentCategory && currentPlace.name && currentPlace.address) {
        const cleanName = currentPlace.name.replace(/\*\*/g, '').trim();
        const cleanAddr = currentPlace.address.trim();
+       
+       // Deduplication key
+       const uniqueKey = `${cleanName}-${cleanAddr}`.replace(/\s/g, '');
+
+       if (seenPlaces.has(uniqueKey)) {
+         currentPlace = {};
+         return; 
+       }
 
        // Attempt to find a map link AND the official title
        const groundingInfo = findGroundingInfo(cleanName, groundingChunks);
@@ -198,6 +217,7 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
        // STRICT: Only allow places where a map link was found (Verified Real Places).
        if (groundingInfo) {
          addToCategory(result, currentCategory, place);
+         seenPlaces.add(uniqueKey); // Mark as seen only if added
        } 
        currentPlace = {};
     }
