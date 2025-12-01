@@ -1,40 +1,43 @@
 import React, { useState } from 'react';
 import { DateCourseResult, Place, CategoryType } from '../types';
 import { CATEGORIES } from '../constants';
-import { MapPin, ExternalLink, Navigation, CheckCircle } from 'lucide-react';
+import { MapPin, Navigation, CheckCircle, Heart } from 'lucide-react';
 
 interface ResultSectionProps {
   result: DateCourseResult;
 }
 
 const PlaceCard: React.FC<{ place: Place; index: number }> = ({ place, index }) => (
-  <div className="group bg-white rounded-xl border border-gray-100 p-5 hover:shadow-lg transition-all duration-300 flex flex-col h-full relative overflow-hidden">
-    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-transparent via-gray-200 to-transparent group-hover:bg-rose-400 transition-colors"></div>
+  <div className="group bg-white rounded-2xl border border-pink-50 p-6 hover:shadow-[0_10px_40px_-10px_rgba(255,182,193,0.5)] transition-all duration-300 flex flex-col h-full relative overflow-hidden hover:-translate-y-1">
+    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-200 via-rose-300 to-pink-200 opacity-50 group-hover:opacity-100 transition-opacity"></div>
     
     {place.googleMapLink && (
       <div className="absolute top-4 right-4 z-10">
-         <div className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 shadow-sm">
+         <div className="bg-white/90 backdrop-blur border border-rose-100 text-rose-500 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 shadow-sm">
             <CheckCircle className="w-3 h-3" />
             <span>지도 인증</span>
          </div>
       </div>
     )}
     
-    <div className="flex justify-between items-start mb-2 pl-3 pr-20">
-      <h3 className="font-bold text-lg text-gray-900 group-hover:text-rose-600 transition-colors line-clamp-1">
-        {place.name}
-      </h3>
+    <div className="flex items-center gap-2 mb-3">
+        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 text-rose-500 text-xs font-bold font-mono">
+            {index + 1}
+        </span>
     </div>
-    <span className="text-xs font-mono text-gray-400 bg-gray-50 px-2 py-1 rounded inline-block ml-3 mb-3 w-fit">#{index + 1}</span>
 
-    <p className="text-sm text-gray-600 mb-4 pl-3 line-clamp-2 flex-grow">
+    <h3 className="font-jua text-xl text-gray-800 group-hover:text-rose-500 transition-colors mb-2 pr-16 leading-tight">
+      {place.name}
+    </h3>
+
+    <p className="text-sm text-gray-600 mb-5 leading-relaxed flex-grow">
       {place.description}
     </p>
 
-    <div className="mt-auto pl-3 border-t border-gray-50 pt-3">
-      <div className="flex items-start gap-2 mb-3">
-        <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-        <span className="text-xs text-gray-500 break-keep">{place.address}</span>
+    <div className="mt-auto pt-4 border-t border-gray-50">
+      <div className="flex items-start gap-2 mb-4 bg-gray-50 p-2.5 rounded-lg">
+        <MapPin className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
+        <span className="text-xs text-gray-500 break-keep font-medium">{place.address}</span>
       </div>
 
       {place.googleMapLink ? (
@@ -42,7 +45,7 @@ const PlaceCard: React.FC<{ place: Place; index: number }> = ({ place, index }) 
           href={place.googleMapLink} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="w-full flex items-center justify-center gap-2 bg-slate-50 hover:bg-rose-50 text-slate-600 hover:text-rose-600 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-200 hover:border-rose-200"
+          className="w-full flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white py-3 rounded-xl text-sm font-bold transition-all duration-300 group-hover:shadow-md group-hover:shadow-rose-100"
         >
           <Navigation className="w-4 h-4" />
           구글 지도로 보기
@@ -52,7 +55,7 @@ const PlaceCard: React.FC<{ place: Place; index: number }> = ({ place, index }) 
            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.address + ' ' + place.name)}`}
            target="_blank"
            rel="noopener noreferrer"
-           className="w-full flex items-center justify-center gap-2 bg-slate-50 hover:bg-rose-50 text-slate-600 hover:text-rose-600 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-200 hover:border-rose-200"
+           className="w-full flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 py-3 rounded-xl text-sm font-bold transition-all"
         >
            <Navigation className="w-4 h-4" />
            지도 검색
@@ -73,7 +76,7 @@ const ResultSection: React.FC<ResultSectionProps> = ({ result }) => {
   return (
     <div className="w-full max-w-6xl mx-auto mt-12 animate-fade-in-up">
       {/* Mobile/Tablet Tab Navigation */}
-      <div className="flex overflow-x-auto pb-4 gap-2 mb-6 scrollbar-hide">
+      <div className="flex overflow-x-auto pb-4 gap-3 mb-6 scrollbar-hide px-2">
         {CATEGORIES.map((cat) => {
           const Icon = cat.icon;
           const isActive = activeTab === cat.id;
@@ -83,14 +86,14 @@ const ResultSection: React.FC<ResultSectionProps> = ({ result }) => {
             <button
               key={cat.id}
               onClick={() => setActiveTab(cat.id)}
-              className={`flex items-center gap-2 px-5 py-3 rounded-full whitespace-nowrap transition-all duration-300
+              className={`flex items-center gap-2 px-6 py-3 rounded-full whitespace-nowrap transition-all duration-300 border-2
                 ${isActive 
-                  ? 'bg-gray-900 text-white shadow-lg scale-105' 
-                  : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'}`}
+                  ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-200 scale-105' 
+                  : 'bg-white border-white text-gray-400 hover:bg-rose-50 hover:text-rose-400 hover:border-rose-100'}`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-rose-300' : cat.color}`} />
-              <span className="font-semibold text-sm">{cat.label}</span>
-              <span className={`ml-1 text-xs px-2 py-0.5 rounded-full ${isActive ? 'bg-white/20' : 'bg-gray-100'}`}>
+              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : ''}`} />
+              <span className="font-jua text-lg pt-1">{cat.label}</span>
+              <span className={`ml-1 text-xs px-2 py-0.5 rounded-full font-bold ${isActive ? 'bg-white/30 text-white' : 'bg-gray-100 text-gray-400'}`}>
                 {count}
               </span>
             </button>
@@ -99,15 +102,16 @@ const ResultSection: React.FC<ResultSectionProps> = ({ result }) => {
       </div>
 
       {/* Content Grid */}
-      <div className="bg-white/50 backdrop-blur-sm rounded-3xl p-6 md:p-8 border border-white/60 shadow-sm min-h-[400px]">
+      <div className="bg-white/60 backdrop-blur-xl rounded-[2rem] p-6 md:p-10 border border-white shadow-xl shadow-rose-100/50 min-h-[400px]">
         <div className="flex items-center gap-3 mb-8">
-            <div className={`p-3 rounded-xl bg-white shadow-md ${activeCategory?.color}`}>
-                {activeCategory && <activeCategory.icon className="w-6 h-6" />}
+            <div className={`p-3 rounded-2xl bg-white shadow-sm border border-pink-50 ${activeCategory?.color}`}>
+                {activeCategory && <activeCategory.icon className="w-7 h-7" />}
             </div>
             <div>
-                <h3 className="text-2xl font-bold text-gray-900">{activeCategory?.label} 추천</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  Google Maps 데이터를 기반으로 검증된 장소입니다.
+                <h3 className="text-3xl font-jua text-gray-800">{activeCategory?.label} 추천</h3>
+                <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                  <Heart className="w-3 h-3 text-rose-400 fill-rose-400" />
+                  엄선된 로맨틱한 장소들입니다.
                 </p>
             </div>
         </div>
@@ -119,17 +123,23 @@ const ResultSection: React.FC<ResultSectionProps> = ({ result }) => {
             ))}
           </div>
         ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                <MapPin className="w-16 h-16 mb-4 opacity-20" />
-                <p>이 카테고리에는 추천 장소가 없습니다.</p>
-                <p className="text-xs mt-2 text-gray-300">(실존하는 장소를 찾지 못했을 수 있습니다)</p>
+            <div className="flex flex-col items-center justify-center py-24 text-gray-400">
+                <div className="bg-white p-6 rounded-full shadow-sm mb-4">
+                     <MapPin className="w-12 h-12 text-rose-200" />
+                </div>
+                <p className="font-jua text-xl text-gray-500">이런, 추천 장소가 없네요!</p>
+                <p className="text-sm mt-2 text-rose-300">다른 카테고리를 확인해보세요.</p>
             </div>
         )}
       </div>
 
-      <div className="text-center mt-12 mb-20 text-xs text-gray-400">
-        <p>Google Maps 데이터를 기반으로 Gemini AI가 생성한 결과입니다.</p>
-        <p>실제 운영 정보와 다를 수 있으니 방문 전 확인해주세요.</p>
+      <div className="text-center mt-12 mb-20 space-y-2">
+        <p className="text-xs text-gray-400">
+            Google Maps 데이터를 기반으로 Gemini AI가 큐레이팅한 데이트 코스입니다.
+        </p>
+        <p className="text-xs text-rose-300 font-medium">
+            방문 전 실제 운영 여부를 꼭 확인해주세요! 💕
+        </p>
       </div>
     </div>
   );
