@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { DateCourseResult, Place, CategoryType } from '../types';
 import { CATEGORIES } from '../constants';
-import { MapPin, Navigation, CheckCircle, Heart, Star } from 'lucide-react';
+import { MapPin, Navigation, CheckCircle, Heart, Star, ShoppingBag } from 'lucide-react';
 
 interface ResultSectionProps {
   result: DateCourseResult;
@@ -19,6 +19,8 @@ const PlaceCard: React.FC<{ place: Place; index: number }> = ({ place, index }) 
       </div>
     );
   };
+
+  const mapUrl = place.googleMapLink || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.address + ' ' + place.name)}`;
 
   return (
     <div className="group bg-white rounded-2xl border border-pink-50 p-6 hover:shadow-[0_10px_40px_-10px_rgba(255,182,193,0.5)] transition-all duration-300 flex flex-col h-full relative overflow-hidden hover:-translate-y-1">
@@ -55,27 +57,19 @@ const PlaceCard: React.FC<{ place: Place; index: number }> = ({ place, index }) 
           <span className="text-xs text-gray-500 break-keep font-medium">{place.address}</span>
         </div>
 
-        {place.googleMapLink ? (
-          <a 
-            href={place.googleMapLink} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white py-3 rounded-xl text-sm font-bold transition-all duration-300 group-hover:shadow-md group-hover:shadow-rose-100"
-          >
-            <Navigation className="w-4 h-4" />
-            구글 지도로 보기
-          </a>
-        ) : (
-          <a 
-             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.address + ' ' + place.name)}`}
-             target="_blank"
-             rel="noopener noreferrer"
-             className="w-full flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 py-3 rounded-xl text-sm font-bold transition-all"
-          >
-             <Navigation className="w-4 h-4" />
-             지도 검색
-          </a>
-        )}
+        <a 
+          href={mapUrl} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all duration-300
+            ${place.googleMapLink 
+                ? 'bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white group-hover:shadow-md group-hover:shadow-rose-100' 
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700'
+            }`}
+        >
+          <Navigation className="w-4 h-4" />
+          구글 지도로 보기
+        </a>
       </div>
     </div>
   );

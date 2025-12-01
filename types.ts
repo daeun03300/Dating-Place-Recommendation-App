@@ -7,7 +7,7 @@ export interface Place {
   rating?: string; // Google Maps rating (e.g., "4.5")
 }
 
-export type CategoryType = 'RESTAURANT' | 'SIGHTSEEING' | 'ACTIVITY' | 'PHOTO' | 'RELAXATION' | 'CAFE';
+export type CategoryType = 'RESTAURANT' | 'SIGHTSEEING' | 'ACTIVITY' | 'PHOTO' | 'RELAXATION' | 'CAFE' | 'SHOPPING';
 
 export interface DateCourseResult {
   restaurant: Place[];
@@ -16,6 +16,7 @@ export interface DateCourseResult {
   photo: Place[];
   relaxation: Place[];
   cafe: Place[];
+  shopping: Place[];
 }
 
 export interface LocationState {

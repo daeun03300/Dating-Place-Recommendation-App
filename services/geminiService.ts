@@ -66,8 +66,9 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   2. 카페 (디저트, 뷰 맛집)
   3. 볼거리 (공원, 산책로, 랜드마크)
   4. 놀거리 (오락실, 공방, 전시)
-  5. 휴식 활동 (찜질방, 만화카페, 스파)
-  6. 포토기기 (인생네컷, 포토이즘 등 브랜드 필수)
+  5. 쇼핑 (백화점, 아울렛, 소품샵, 편집샵)
+  6. 휴식 활동 (찜질방, 만화카페, 스파)
+  7. 포토기기 (인생네컷, 포토이즘 등 브랜드 필수)
 
   [응답 형식]
   각 카테고리는 "## 카테고리명"으로 시작하며, 장소 정보는 아래 형식을 엄수하세요:
@@ -90,6 +91,7 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   - 카페 3곳
   - 볼거리 2곳
   - 놀거리 2곳
+  - 쇼핑 2곳
   - 휴식 활동 2곳
   - 포토기기 2곳
   `;
@@ -122,6 +124,7 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
     cafe: [],
     sightseeing: [],
     activity: [],
+    shopping: [],
     relaxation: [],
     photo: [],
   };
@@ -132,7 +135,7 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
 
   // Regex helpers - Robust parsing
   // Matches "## 맛집", "## 1. 맛집", "## 맛집 추천" etc.
-  const categoryRegex = /##\s*.*(맛집|카페|볼거리|놀거리|휴식|포토).*?/;
+  const categoryRegex = /##\s*.*(맛집|카페|볼거리|놀거리|쇼핑|휴식|포토).*?/;
   
   // Matches "* 장소명: ...", "- 장소명 : ...", "1. 장소명: ..."
   const nameRegex = /^[\*\-\d\.]+\s*장소명\s*[:：]\s*(.+)/;
@@ -178,6 +181,7 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
        case 'CAFE': res.cafe.push(place); break;
        case 'SIGHTSEEING': res.sightseeing.push(place); break;
        case 'ACTIVITY': res.activity.push(place); break;
+       case 'SHOPPING': res.shopping.push(place); break;
        case 'RELAXATION': res.relaxation.push(place); break;
        case 'PHOTO': res.photo.push(place); break;
      }
@@ -195,6 +199,7 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
       else if (catText.includes('카페')) currentCategory = 'CAFE';
       else if (catText.includes('볼거리')) currentCategory = 'SIGHTSEEING';
       else if (catText.includes('놀거리')) currentCategory = 'ACTIVITY';
+      else if (catText.includes('쇼핑')) currentCategory = 'SHOPPING';
       else if (catText.includes('휴식')) currentCategory = 'RELAXATION';
       else if (catText.includes('포토')) currentCategory = 'PHOTO';
       continue;
