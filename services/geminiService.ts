@@ -32,12 +32,11 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   const systemInstruction = `
   당신은 Google Maps 데이터를 기반으로 한국의 데이트 코스를 추천하는 AI 큐레이터입니다.
   
-  [절대 원칙 - 신뢰성 최우선]
-  1. 반드시 **Google Maps 도구**를 사용하여 **실제로 존재하며 현재 운영 중인 장소**만 추천해야 합니다.
-  2. 존재하지 않는 장소(Hallucination)를 절대로 지어내지 마십시오.
-  3. 사용자가 입력한 위치 근처(2km 이내)에 적합한 장소가 없다면, 검색 반경을 **5km~10km까지 넓혀서라도** 반드시 실존하는 장소를 찾으십시오.
-  4. 장소명과 주소는 Google Maps 상의 정보와 정확히 일치해야 합니다.
-  5. 만약 해당 카테고리에 확실한 장소가 없다면, 억지로 채우지 말고 검색된 실제 장소만 반환하세요.
+  [매우 중요한 규칙 - 실존 장소 엄수]
+  1. 반드시 **Google Maps 도구**를 사용하여 해당 지역에 **실제로 존재하는 장소**만 추천해야 합니다.
+  2. 존재하지 않거나 위치가 불분명한 장소는 절대로 지어내지 마십시오 (Hallucination 금지).
+  3. 장소명과 주소는 Google Maps 상의 정보와 정확히 일치해야 합니다.
+  4. 만약 특정 카테고리에 적합한 장소가 없다면, 억지로 채우지 말고 검색된 장소만 반환하세요.
 
   [추천 카테고리]
   1. 맛집 (식당, 카페, 디저트, 분위기 좋은 술집)
@@ -55,16 +54,13 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   const prompt = `
   사용자 입력 위치: ${locationString}
   
-  위 지역을 중심으로 데이트하기 좋은 **실제 장소**를 찾아주세요.
-  근처에 장소가 없다면 범위를 조금씩 넓혀서(최대 10km) 검색하세요.
-  없는 장소를 지어내는 것은 절대 금지입니다.
-  
+  위 지역 근처(반경 2km 이내)에서 데이트하기 좋은 실제 장소를 찾아주세요.
   다음 카테고리별로 Google 지도에서 검증된 장소만 추천해주세요:
   
-  - 맛집
-  - 볼거리
-  - 놀거리
-  - 포토기기 (브랜드 셀프 사진관 필수)
+  - 맛집 3곳
+  - 볼거리 2곳
+  - 놀거리 2곳
+  - 포토기기 2곳 (인생네컷 등 브랜드 셀프 사진관 필수)
   
   각 장소의 상호명과 정확한 도로명 주소를 반드시 포함하세요.
   `;
@@ -76,7 +72,7 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
       config: {
         systemInstruction: systemInstruction,
         tools: [{ googleMaps: {} }], // Use Maps Grounding
-        temperature: 0.4, // Low temperature to reduce creativity/hallucination
+        temperature: 0.5, // Lower temperature for more factual responses
       },
     });
 
@@ -121,13 +117,6 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
        // Attempt to find a map link from grounding chunks
        const mapLink = findLinkForPlace(cleanName, groundingChunks);
        
-       // CRITICAL: Strict Filtering
-       // If we cannot verify the place exists using the Google Maps grounding data,
-       // we simply DO NOT include it. This ensures 100% of displayed places are real.
-       if (!mapLink) {
-         return; 
-       }
-
        const place: Place = {
          name: cleanName,
          address: cleanAddr,
