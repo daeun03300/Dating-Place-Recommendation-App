@@ -4,6 +4,7 @@ export interface Place {
   description: string;
   category: CategoryType;
   googleMapLink?: string; // Derived from grounding chunks if available
+  rating?: string; // Google Maps rating (e.g., "4.5")
 }
 
 export type CategoryType = 'RESTAURANT' | 'SIGHTSEEING' | 'ACTIVITY' | 'PHOTO' | 'RELAXATION' | 'CAFE';

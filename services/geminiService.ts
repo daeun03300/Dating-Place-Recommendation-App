@@ -54,6 +54,7 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   1. 무조건 **Google Maps**에 실제로 등록된 장소만 추천하세요.
   2. 장소명은 Google 지도에 등록된 **정확한 상호명**을 사용하세요 (약어 사용 금지).
   3. 주소는 반드시 도로명 주소를 포함하세요.
+  4. Google Maps에 등록된 **별점(평점)** 정보를 반드시 포함하세요.
 
   [빈 카테고리 금지 - 검색 범위 확장]
   사용자가 입력한 '동/읍/면'에 해당 카테고리의 장소가 없다면, 즉시 **'구/군'** 단위로, 그래도 없다면 **'시/도'** 단위로 범위를 넓혀서라도 **반드시 추천 장소를 찾아내세요.**
@@ -73,6 +74,7 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   ## 맛집
   * 장소명: [정확한 상호명]
   * 주소: [도로명 주소]
+  * 별점: [0.0 ~ 5.0 사이 숫자, 없으면 0.0]
   * 설명: [추천 이유]
   `;
 
@@ -133,6 +135,7 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
   // Matches "* 장소명: ...", "- 장소명 : ...", "1. 장소명: ..."
   const nameRegex = /^[\*\-\d\.]+\s*장소명\s*[:：]\s*(.+)/;
   const addressRegex = /^[\*\-\s]*주소\s*[:：]\s*(.+)/;
+  const ratingRegex = /^[\*\-\s]*별점\s*[:：]\s*(.+)/;
   const descRegex = /^[\*\-\s]*설명\s*[:：]\s*(.+)/;
 
   const pushCurrentPlace = () => {
@@ -148,21 +151,17 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
          address: cleanAddr,
          description: currentPlace.description || "설명 없음",
          category: currentCategory,
+         rating: currentPlace.rating || undefined,
          googleMapLink: mapLink
        };
 
        // Verification Logic:
        // 1. If mapLink exists -> Always Verified.
        // 2. If mapLink missing -> Check if address looks real (Safety net for strict "No Empty" rule).
-       // We prioritize mapLink, but if the AI gives a very specific address in the target area, we accept it to prevent "Empty Result" errors.
-       // However, we prefer verified.
-       
        if (mapLink) {
          addToCategory(result, currentCategory, place);
        } else {
          // Fallback: If address contains specific location markers, assume it's real but unverified link.
-         // This balances "No Hallucinations" with "No Empty Results".
-         // Usually, if AI hallucinates, address is vague. Real addresses have '길', '로', '번지'.
          if (cleanAddr.includes('길') || cleanAddr.includes('로') || cleanAddr.match(/\d/)) {
             addToCategory(result, currentCategory, place);
          }
@@ -210,6 +209,14 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
         const addrMatch = trimmed.match(addressRegex);
         if (addrMatch) {
             currentPlace.address = addrMatch[1];
+            continue;
+        }
+
+        const ratingMatch = trimmed.match(ratingRegex);
+        if (ratingMatch) {
+            // Remove any non-numeric chars except dot, and text like "점", "/5" etc.
+            const rawRating = ratingMatch[1].replace(/[^\d.]/g, '');
+            currentPlace.rating = rawRating;
             continue;
         }
 

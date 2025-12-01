@@ -1,69 +1,85 @@
 import React, { useState } from 'react';
 import { DateCourseResult, Place, CategoryType } from '../types';
 import { CATEGORIES } from '../constants';
-import { MapPin, Navigation, CheckCircle, Heart } from 'lucide-react';
+import { MapPin, Navigation, CheckCircle, Heart, Star } from 'lucide-react';
 
 interface ResultSectionProps {
   result: DateCourseResult;
 }
 
-const PlaceCard: React.FC<{ place: Place; index: number }> = ({ place, index }) => (
-  <div className="group bg-white rounded-2xl border border-pink-50 p-6 hover:shadow-[0_10px_40px_-10px_rgba(255,182,193,0.5)] transition-all duration-300 flex flex-col h-full relative overflow-hidden hover:-translate-y-1">
-    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-200 via-rose-300 to-pink-200 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-    
-    {place.googleMapLink && (
-      <div className="absolute top-4 right-4 z-10">
-         <div className="bg-white/90 backdrop-blur border border-rose-100 text-rose-500 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 shadow-sm">
-            <CheckCircle className="w-3 h-3" />
-            <span>지도 인증</span>
-         </div>
+const PlaceCard: React.FC<{ place: Place; index: number }> = ({ place, index }) => {
+  const renderRating = (ratingStr?: string) => {
+    const rating = parseFloat(ratingStr || '0');
+    if (!rating || isNaN(rating) || rating === 0) return null;
+
+    return (
+      <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md w-fit mb-2">
+        <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+        <span className="text-sm font-bold text-amber-600">{rating.toFixed(1)}</span>
       </div>
-    )}
-    
-    <div className="flex items-center gap-2 mb-3">
-        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 text-rose-500 text-xs font-bold font-mono">
-            {index + 1}
-        </span>
-    </div>
+    );
+  };
 
-    <h3 className="font-jua text-xl text-gray-800 group-hover:text-rose-500 transition-colors mb-2 pr-16 leading-tight">
-      {place.name}
-    </h3>
-
-    <p className="text-sm text-gray-600 mb-5 leading-relaxed flex-grow">
-      {place.description}
-    </p>
-
-    <div className="mt-auto pt-4 border-t border-gray-50">
-      <div className="flex items-start gap-2 mb-4 bg-gray-50 p-2.5 rounded-lg">
-        <MapPin className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
-        <span className="text-xs text-gray-500 break-keep font-medium">{place.address}</span>
-      </div>
-
-      {place.googleMapLink ? (
-        <a 
-          href={place.googleMapLink} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="w-full flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white py-3 rounded-xl text-sm font-bold transition-all duration-300 group-hover:shadow-md group-hover:shadow-rose-100"
-        >
-          <Navigation className="w-4 h-4" />
-          구글 지도로 보기
-        </a>
-      ) : (
-        <a 
-           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.address + ' ' + place.name)}`}
-           target="_blank"
-           rel="noopener noreferrer"
-           className="w-full flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 py-3 rounded-xl text-sm font-bold transition-all"
-        >
-           <Navigation className="w-4 h-4" />
-           지도 검색
-        </a>
+  return (
+    <div className="group bg-white rounded-2xl border border-pink-50 p-6 hover:shadow-[0_10px_40px_-10px_rgba(255,182,193,0.5)] transition-all duration-300 flex flex-col h-full relative overflow-hidden hover:-translate-y-1">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-200 via-rose-300 to-pink-200 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+      
+      {place.googleMapLink && (
+        <div className="absolute top-4 right-4 z-10">
+           <div className="bg-white/90 backdrop-blur border border-rose-100 text-rose-500 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 shadow-sm">
+              <CheckCircle className="w-3 h-3" />
+              <span>지도 인증</span>
+           </div>
+        </div>
       )}
+      
+      <div className="flex items-center gap-2 mb-3">
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 text-rose-500 text-xs font-bold font-mono">
+              {index + 1}
+          </span>
+      </div>
+
+      <h3 className="font-jua text-xl text-gray-800 group-hover:text-rose-500 transition-colors mb-1 pr-16 leading-tight">
+        {place.name}
+      </h3>
+
+      {renderRating(place.rating)}
+
+      <p className="text-sm text-gray-600 mb-5 leading-relaxed flex-grow mt-2">
+        {place.description}
+      </p>
+
+      <div className="mt-auto pt-4 border-t border-gray-50">
+        <div className="flex items-start gap-2 mb-4 bg-gray-50 p-2.5 rounded-lg">
+          <MapPin className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
+          <span className="text-xs text-gray-500 break-keep font-medium">{place.address}</span>
+        </div>
+
+        {place.googleMapLink ? (
+          <a 
+            href={place.googleMapLink} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white py-3 rounded-xl text-sm font-bold transition-all duration-300 group-hover:shadow-md group-hover:shadow-rose-100"
+          >
+            <Navigation className="w-4 h-4" />
+            구글 지도로 보기
+          </a>
+        ) : (
+          <a 
+             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.address + ' ' + place.name)}`}
+             target="_blank"
+             rel="noopener noreferrer"
+             className="w-full flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 py-3 rounded-xl text-sm font-bold transition-all"
+          >
+             <Navigation className="w-4 h-4" />
+             지도 검색
+          </a>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const ResultSection: React.FC<ResultSectionProps> = ({ result }) => {
   const [activeTab, setActiveTab] = useState<CategoryType>('RESTAURANT');
