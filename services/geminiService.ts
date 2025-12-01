@@ -36,13 +36,15 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   1. 반드시 **Google Maps 도구**를 사용하여 해당 지역에 **실제로 존재하는 장소**만 추천해야 합니다.
   2. 존재하지 않거나 위치가 불분명한 장소는 절대로 지어내지 마십시오 (Hallucination 금지).
   3. 장소명과 주소는 Google Maps 상의 정보와 정확히 일치해야 합니다.
-  4. 만약 특정 카테고리에 적합한 장소가 없다면, 억지로 채우지 말고 검색된 장소만 반환하세요.
+  4. 검색 범위 확장: 만약 선택된 읍/면/동(Neighborhood)에 추천할 장소가 없다면, 같은 시/군/구(District)로 범위를 넓히고, 그래도 없다면 시/도(City) 단위의 유명한 장소를 추천하여 **반드시 모든 카테고리를 채우세요.** 빈 카테고리를 반환하지 마세요.
 
   [추천 카테고리]
-  1. 맛집 (식당, 카페, 디저트, 분위기 좋은 술집)
-  2. 볼거리 (공원, 산책로, 랜드마크, 전망대)
-  3. 놀거리 (액티비티, 오락실, 방탈출, 공방, 만화카페)
-  4. 포토기기 (인생네컷, 하루필름, 포토이즘, 포토그레이 등 셀프 스튜디오 - 실제 지점 위치)
+  1. 맛집 (식당, 분위기 좋은 술집)
+  2. 카페 (베이커리, 디저트, 뷰 맛집, 감성 카페)
+  3. 볼거리 (공원, 산책로, 랜드마크, 전망대)
+  4. 놀거리 (오락실, 방탈출, 공방, 전시)
+  5. 휴식 활동 (찜질방, 스파, 족욕, 북카페, 힐링 카페)
+  6. 포토기기 (인생네컷, 하루필름, 포토이즘 등 브랜드 셀프 사진관 필수)
 
   [응답 형식]
   각 카테고리는 "## 카테고리명"으로 시작하며, 장소 정보는 아래 형식을 지켜주세요:
@@ -54,15 +56,17 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
   const prompt = `
   사용자 입력 위치: ${locationString}
   
-  위 지역 근처(반경 2km 이내)에서 데이트하기 좋은 실제 장소를 찾아주세요.
+  위 지역 근처(우선순위: 읍/면/동 -> 시/군/구 -> 시/도)에서 데이트하기 좋은 실제 장소를 찾아주세요.
   다음 카테고리별로 Google 지도에서 검증된 장소만 추천해주세요:
   
   - 맛집 3곳
+  - 카페 3곳
   - 볼거리 2곳
   - 놀거리 2곳
+  - 휴식 활동 2곳
   - 포토기기 2곳 (인생네컷 등 브랜드 셀프 사진관 필수)
   
-  각 장소의 상호명과 정확한 도로명 주소를 반드시 포함하세요.
+  검색된 장소가 없다면 범위를 넓혀서라도 반드시 추천 장소를 포함시키세요.
   `;
 
   try {
@@ -90,8 +94,10 @@ export const fetchDateCourse = async (locationString: string): Promise<DateCours
 const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResult => {
   const result: DateCourseResult = {
     restaurant: [],
+    cafe: [],
     sightseeing: [],
     activity: [],
+    relaxation: [],
     photo: [],
   };
 
@@ -102,7 +108,7 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
   let currentPlace: Partial<Place> = {};
 
   // Regex helpers - Updated to be more flexible with formatting
-  const categoryRegex = /##\s*(맛집|볼거리|놀거리|포토기기|유명 포토기기)/;
+  const categoryRegex = /##\s*(맛집|카페|볼거리|놀거리|휴식 활동|포토기기|유명 포토기기)/;
   
   // Matches "* 장소명: Value" or "- 장소명: Value"
   const nameRegex = /[*-\s]*장소명[:\s]\s*(.+)/;
@@ -125,11 +131,16 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
          googleMapLink: mapLink
        };
 
-       switch (currentCategory) {
-         case 'RESTAURANT': result.restaurant.push(place); break;
-         case 'SIGHTSEEING': result.sightseeing.push(place); break;
-         case 'ACTIVITY': result.activity.push(place); break;
-         case 'PHOTO': result.photo.push(place); break;
+       // IMPORTANT: Strict Filtering - Only allow places with a valid Google Map Link
+       if (mapLink) {
+         switch (currentCategory) {
+           case 'RESTAURANT': result.restaurant.push(place); break;
+           case 'CAFE': result.cafe.push(place); break;
+           case 'SIGHTSEEING': result.sightseeing.push(place); break;
+           case 'ACTIVITY': result.activity.push(place); break;
+           case 'RELAXATION': result.relaxation.push(place); break;
+           case 'PHOTO': result.photo.push(place); break;
+         }
        }
        currentPlace = {};
     }
@@ -145,8 +156,10 @@ const parseResponseText = (text: string, groundingChunks: any[]): DateCourseResu
       pushCurrentPlace(); // Push previous if exists
       const catText = catMatch[1];
       if (catText.includes('맛집')) currentCategory = 'RESTAURANT';
+      else if (catText.includes('카페')) currentCategory = 'CAFE';
       else if (catText.includes('볼거리')) currentCategory = 'SIGHTSEEING';
       else if (catText.includes('놀거리')) currentCategory = 'ACTIVITY';
+      else if (catText.includes('휴식')) currentCategory = 'RELAXATION';
       else if (catText.includes('포토')) currentCategory = 'PHOTO';
       continue;
     }

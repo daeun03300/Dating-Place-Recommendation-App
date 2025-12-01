@@ -1,10 +1,12 @@
 import { CategoryType } from "./types";
-import { Utensils, Camera, Ticket, MapPin } from "lucide-react";
+import { Utensils, Camera, Ticket, MapPin, Coffee, Armchair } from "lucide-react";
 
 export const CATEGORIES: { id: CategoryType; label: string; icon: any; color: string }[] = [
   { id: 'RESTAURANT', label: '맛집', icon: Utensils, color: 'text-rose-500' },
+  { id: 'CAFE', label: '카페', icon: Coffee, color: 'text-amber-600' },
   { id: 'SIGHTSEEING', label: '볼거리', icon: MapPin, color: 'text-emerald-500' },
   { id: 'ACTIVITY', label: '놀거리', icon: Ticket, color: 'text-violet-500' },
+  { id: 'RELAXATION', label: '휴식 활동', icon: Armchair, color: 'text-teal-500' },
   { id: 'PHOTO', label: '포토기기', icon: Camera, color: 'text-blue-500' },
 ];
 

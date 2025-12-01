@@ -6,13 +6,15 @@ export interface Place {
   googleMapLink?: string; // Derived from grounding chunks if available
 }
 
-export type CategoryType = 'RESTAURANT' | 'SIGHTSEEING' | 'ACTIVITY' | 'PHOTO';
+export type CategoryType = 'RESTAURANT' | 'SIGHTSEEING' | 'ACTIVITY' | 'PHOTO' | 'RELAXATION' | 'CAFE';
 
 export interface DateCourseResult {
   restaurant: Place[];
   sightseeing: Place[];
   activity: Place[];
   photo: Place[];
+  relaxation: Place[];
+  cafe: Place[];
 }
 
 export interface LocationState {
