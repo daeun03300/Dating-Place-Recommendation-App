@@ -66,23 +66,59 @@ const App: React.FC = () => {
   };
 
   const handleAddReview = (text: string) => {
-    // Determine side (Left or Right) to avoid center content
-    const isLeft = Math.random() > 0.5;
-    
-    // Adjusted zones to prevent text from being cut off at the screen edges
-    // Element is centered via translate(-50%, -50%), so we avoid extreme 0% or 100%
-    // Left zone: 8% - 18%
-    // Right zone: 82% - 92%
-    const x = isLeft 
-      ? Math.random() * 10 + 8 
-      : Math.random() * 10 + 82;
+    let bestX = 0;
+    let bestY = 0;
+    let validPositionFound = false;
+    let attempts = 0;
+    const maxAttempts = 50;
+    const minVerticalSpacing = 6; // Minimum vertical % distance to avoid overlap
+
+    // Try to find a non-overlapping spot
+    while (!validPositionFound && attempts < maxAttempts) {
+        attempts++;
+        
+        // Alternate sides based on attempt count to balance distribution
+        const isLeft = Math.random() > 0.5;
+
+        // Left zone: 5-15%, Right zone: 85-95%
+        const candidateX = isLeft 
+            ? Math.random() * 10 + 5 
+            : Math.random() * 10 + 85;
+
+        // Vertical: 10-90% to avoid extreme edges
+        const candidateY = Math.random() * 80 + 10;
+
+        // Check collision with existing reviews
+        const collision = reviews.some(r => {
+            // Check if on the same side (roughly)
+            const rIsLeft = r.x < 50;
+            const cIsLeft = candidateX < 50;
+            if (rIsLeft !== cIsLeft) return false;
+
+            // Check vertical distance
+            return Math.abs(r.y - candidateY) < minVerticalSpacing;
+        });
+
+        if (!collision) {
+            bestX = candidateX;
+            bestY = candidateY;
+            validPositionFound = true;
+        }
+    }
+
+    // Fallback if no specific spot found (unlikely unless very crowded)
+    if (!validPositionFound) {
+        const isLeft = Math.random() > 0.5;
+        bestX = isLeft ? Math.random() * 10 + 5 : Math.random() * 10 + 85;
+        bestY = Math.random() * 80 + 10;
+    }
 
     const newReview: Review = {
       id: Date.now().toString(),
       text,
-      x: x,
-      y: Math.random() * 80 + 10, // 10% to 90% vertical to avoid top/bottom cutoff
-      rotation: Math.random() * 30 - 15, // -15 to 15 deg (gentler rotation)
+      x: bestX,
+      y: bestY,
+      rotation: 0, // No rotation for straight alignment
     };
     setReviews(prev => [...prev, newReview]);
   };
@@ -112,7 +148,7 @@ const App: React.FC = () => {
           style={{
             top: `${review.y}%`,
             left: `${review.x}%`,
-            transform: `translate(-50%, -50%) rotate(${review.rotation}deg)`,
+            transform: `translate(-50%, -50%)`, // Removed rotation for straight line
           }}
         >
           "{review.text}"
