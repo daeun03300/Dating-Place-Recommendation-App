@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { LocationState, SearchState, Review } from './types';
 import { fetchDateCourse } from './services/geminiService';
@@ -70,8 +71,10 @@ const App: React.FC = () => {
     let isLeft = true;
     let validPositionFound = false;
     let attempts = 0;
-    const maxAttempts = 50;
-    const minVerticalSpacing = 8; // Increased spacing
+    const maxAttempts = 100; // Increased attempts to find a slot
+    // Significantly increased spacing to ensure at least 2 lines of gap + buffer
+    // 15% of viewport height is roughly 100-150px, plenty for multi-line text avoidance
+    const minVerticalSpacing = 15; 
 
     // Try to find a non-overlapping spot
     while (!validPositionFound && attempts < maxAttempts) {
@@ -101,7 +104,10 @@ const App: React.FC = () => {
         }
     }
 
+    // If we couldn't find a spot after many attempts, purely random fallback might overlap.
+    // However, with maxAttempts=100 and dense checks, it usually finds a spot or implies full screen.
     if (!validPositionFound) {
+        // Fallback: try to put it in a random spot, hoping for the best
         isLeft = Math.random() > 0.5;
         bestY = Math.random() * 70 + 15;
     }
