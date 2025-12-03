@@ -71,9 +71,8 @@ const App: React.FC = () => {
     let isLeft = true;
     let validPositionFound = false;
     let attempts = 0;
-    const maxAttempts = 100; // Increased attempts to find a slot
-    // Significantly increased spacing to ensure at least 2 lines of gap + buffer
-    // 15% of viewport height is roughly 100-150px, plenty for multi-line text avoidance
+    const maxAttempts = 100; 
+    // Minimum 15% vertical spacing
     const minVerticalSpacing = 15; 
 
     // Try to find a non-overlapping spot
@@ -89,9 +88,7 @@ const App: React.FC = () => {
         // Check collision with existing reviews
         const collision = reviews.some(r => {
             // Check if on the same side
-            // We use x < 50 to denote left-aligned reviews in the stored data logic
             const rIsLeft = r.x < 50;
-            
             if (rIsLeft !== isLeft) return false;
 
             // Check vertical distance
@@ -104,10 +101,8 @@ const App: React.FC = () => {
         }
     }
 
-    // If we couldn't find a spot after many attempts, purely random fallback might overlap.
-    // However, with maxAttempts=100 and dense checks, it usually finds a spot or implies full screen.
     if (!validPositionFound) {
-        // Fallback: try to put it in a random spot, hoping for the best
+        // Fallback
         isLeft = Math.random() > 0.5;
         bestY = Math.random() * 70 + 15;
     }
@@ -115,10 +110,11 @@ const App: React.FC = () => {
     const newReview: Review = {
       id: Date.now().toString(),
       text,
-      // We use 'x' to store the side-offset. 
-      // If left: x is small (e.g., 2). Render as left: 2%.
-      // If right: x is large (e.g., 98). Render as right: 2% (computed).
-      x: isLeft ? (Math.random() * 3 + 2) : (Math.random() * 3 + 95), 
+      // Strict margins: 
+      // Left: 1% - 8%
+      // Right: 92% - 99% (Stored as x > 50)
+      // We assume x < 50 is Left, x > 50 is Right for rendering logic
+      x: isLeft ? (Math.random() * 7 + 1) : (Math.random() * 7 + 92), 
       y: bestY,
       rotation: 0,
     };
@@ -142,17 +138,16 @@ const App: React.FC = () => {
         <Heart className="w-16 h-16 fill-current" />
       </div>
 
-      {/* Anonymous Reviews Background */}
+      {/* Anonymous Reviews Background - Only visible on XL screens (1280px+) */}
       {reviews.map((review) => {
         const isLeft = review.x < 50;
-        // Logic: If Left, anchor left. If Right, anchor right.
-        // This prevents the text from flowing off-screen.
+        
         const style: React.CSSProperties = {
             top: `${review.y}%`,
             transform: 'translateY(-50%)',
             position: 'absolute',
-            maxWidth: '35%', // Limit width to prevent overlap with center content
-            whiteSpace: 'normal', // Allow wrapping
+            maxWidth: '10vw', // Limit width to strictly ensure it stays in margin
+            whiteSpace: 'normal', 
             wordBreak: 'keep-all',
             textAlign: isLeft ? 'left' : 'right',
         };
@@ -160,14 +155,13 @@ const App: React.FC = () => {
         if (isLeft) {
             style.left = `${review.x}%`;
         } else {
-            // review.x is ~95-98. Right value is 100 - x.
             style.right = `${100 - review.x}%`;
         }
 
         return (
             <div
             key={review.id}
-            className="font-jua text-rose-300/60 pointer-events-none select-none text-lg md:text-xl z-0 animate-fade-in"
+            className="hidden xl:block font-jua text-rose-300/60 pointer-events-none select-none text-lg z-0 animate-fade-in"
             style={style}
             >
             "{review.text}"
@@ -186,6 +180,7 @@ const App: React.FC = () => {
 
       <GuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
 
+      {/* Main Content - Relative z-10 to stay above reviews */}
       <main className="relative z-10 container mx-auto px-4 py-12 md:py-20 flex flex-col items-center">
         
         {/* Header */}

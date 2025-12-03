@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { DateCourseResult, Place, CategoryType } from '../types';
 import { CATEGORIES } from '../constants';
@@ -93,7 +94,7 @@ const ResultSection: React.FC<ResultSectionProps> = ({ result }) => {
     : [];
 
   return (
-    <div className="w-full max-w-6xl mx-auto mt-12 animate-fade-in-up">
+    <div className="w-full max-w-5xl mx-auto mt-12 animate-fade-in-up">
       {/* Mobile/Tablet Tab Navigation - Centered on desktop, scrollable on mobile */}
       <div className="flex overflow-x-auto pb-4 gap-3 mb-6 scrollbar-hide px-2 md:justify-center">
         {CATEGORIES.map((cat) => {
